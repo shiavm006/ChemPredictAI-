@@ -18,9 +18,9 @@ const cardContents = [
       "Access extensive chemical databases covering organic, inorganic, and biochemical reactions. From simple substitutions to complex multi-step syntheses, our platform covers reactions across all chemical domains.",
   },  
   {
-    title: "Interactive 3D Visualization",
+    title: "Safety Assessment",
     description:
-      "Experience chemical structures and reactions through stunning 3D visualizations. Our WebGL-powered interface provides an immersive way to understand molecular interactions.",
+      "Comprehensive safety analysis for every predicted reaction. Our AI evaluates toxicity levels, hazard classifications, and provides detailed safety recommendations for laboratory protocols.",
   },
   {
     title: "Research-Grade Accuracy",
@@ -35,22 +35,22 @@ const PlusCard: React.FC<{
   description: string;
 }> = ({ className = "", title, description }) => {
   return (
-    <div
-      className={cn(
-        "relative border border-dashed border-gray-600 dark:border-gray-400 rounded-lg p-6 bg-gray-900/20 dark:bg-gray-800/20 backdrop-blur-sm min-h-[200px]",
-        "flex flex-col justify-between hover:bg-gray-800/30 transition-all duration-300",
-        className
-      )}
-    >
-      <CornerPlusIcons />
-      {/* Content */}
-      <div className="relative z-10 space-y-2">
-        <h3 className="text-xl font-bold text-white">
-          {title}
-        </h3>
-        <p className="text-gray-300">{description}</p>
+      <div
+        className={cn(
+          "relative border border-gray-800 rounded-lg p-6 bg-gray-900/20 backdrop-blur-sm min-h-[200px]",
+          "flex flex-col justify-between hover:bg-gray-800/30 transition-all duration-300",
+          className
+        )}
+      >
+        <CornerPlusIcons />
+        {/* Content */}
+        <div className="relative z-10 space-y-3">
+          <h3 className="text-lg font-light text-white">
+            {title}
+          </h3>
+          <p className="text-gray-400 text-sm font-light leading-relaxed">{description}</p>
+        </div>
       </div>
-    </div>
   );
 };
 
@@ -84,10 +84,10 @@ export default function FeaturesBentoCards() {
       <div className="mx-auto container py-20 px-4">
         {/* Section Header */}
         <div className="text-center mb-16">
-          <h2 className="text-4xl md:text-6xl font-bold bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent mb-6">
+          <h2 className="text-4xl md:text-6xl font-light text-white mb-6">
             Powerful Features
           </h2>
-          <p className="text-xl text-gray-300 max-w-3xl mx-auto">
+          <p className="text-lg text-gray-400 max-w-3xl mx-auto font-light">
             Discover the cutting-edge capabilities that make ChemPredict AI the ultimate tool for chemical research and analysis.
           </p>
         </div>
@@ -103,12 +103,9 @@ export default function FeaturesBentoCards() {
 
         {/* Section Footer */}
         <div className="max-w-4xl mx-auto text-center">
-          <h3 className="text-3xl md:text-5xl font-bold text-white mb-6">
+          <h3 className="text-3xl md:text-5xl font-light text-white mb-6">
             Built for chemists. Designed for innovation.
           </h3>
-          <p className="text-gray-400 text-lg leading-relaxed">
-            ChemPredict AI combines the power of artificial intelligence with deep chemical knowledge to revolutionize how we understand and predict chemical reactions. From academic research to industrial applications, our platform provides the tools you need to accelerate discovery.
-          </p>
         </div>
       </div>
     </section>

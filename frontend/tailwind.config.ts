@@ -13,6 +13,9 @@ export default {
       },
     },
     extend: {
+      maxWidth: {
+        container: "1280px",
+      },
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
@@ -98,12 +101,17 @@ export default {
             transform: "rotate(360deg)",
           },
         },
+        marquee: {
+          from: { transform: 'translateX(0)' },
+          to: { transform: 'translateX(calc(-100% - var(--gap)))' }
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
         "fade-in": "fade-in 0.5s ease-out",
         "spin-slow": "spin-slow 2s linear infinite",
+        marquee: 'marquee var(--duration) linear infinite',
       },
     },
   },

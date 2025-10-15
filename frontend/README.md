@@ -1,74 +1,66 @@
-# ChemPredict AI Frontend
+# ChemPredict AI
 
-A modern React frontend for chemical reaction prediction using artificial intelligence.
+A full-stack chemical reaction prediction application built with FastAPI and React.
 
 ## Features
 
-- **Chemical Reaction Prediction**: Input two reactants and get AI-powered predictions
-- **Modern UI**: Built with React, TypeScript, and Tailwind CSS
-- **Responsive Design**: Works on desktop and mobile devices
-- **Real-time Predictions**: Fast API integration for instant results
+- **AI-Powered Predictions**: Advanced machine learning algorithms for chemical reaction analysis
+- **3D Visualization**: Interactive WebGL orb with hover effects
+- **Research Chat**: AI-powered research assistant for chemical analysis
+- **Modern UI**: Minimalist design with glassmorphism effects
+- **Real-Time Analysis**: Instant predictions for chemical reactions
 
 ## Tech Stack
 
-- **React 18** with TypeScript
-- **Vite** for fast development and building
-- **Tailwind CSS** for styling
-- **shadcn/ui** components with Radix UI primitives
-- **React Hook Form** for form handling
+### Backend
+- FastAPI with Python 3.13
+- CORS support for frontend integration
+- Pydantic for data validation
+
+### Frontend
+- React 18 with TypeScript
+- Vite for fast development
+- Tailwind CSS for styling
+- WebGL for 3D graphics
+- shadcn/ui components
 
 ## Getting Started
 
-### Prerequisites
+### Backend Setup
+```bash
+cd backend
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+pip install fastapi uvicorn pydantic
+uvicorn main:app --reload --host 0.0.0.0 --port 8000
+```
 
-- Node.js (v16 or higher)
-- npm or yarn
-
-### Installation
-
-1. Clone the repository
-2. Navigate to the frontend directory:
-   ```bash
-   cd frontend
-   ```
-
-3. Install dependencies:
-   ```bash
-   npm install
-   ```
-
-4. Start the development server:
-   ```bash
-   npm run dev
-   ```
-
-5. Open your browser and visit `http://localhost:8080`
-
-## Available Scripts
-
-- `npm run dev` - Start development server
-- `npm run build` - Build for production
-- `npm run preview` - Preview production build
-- `npm run lint` - Run ESLint
-
-## Backend Integration
-
-This frontend connects to a FastAPI backend running on `http://127.0.0.1:8000`. Make sure the backend is running before using the application.
+### Frontend Setup
+```bash
+cd frontend
+npm install
+npm run dev
+```
 
 ## API Endpoints
 
+- `GET /` - Health check
 - `POST /predict` - Predict chemical reaction between two reactants
 
 ## Project Structure
 
 ```
-src/
-├── components/     # Reusable UI components
-├── pages/         # Page components
-├── lib/           # Utility functions
-├── hooks/         # Custom React hooks
-├── App.tsx        # Main application component
-└── main.tsx       # Application entry point
+├── backend/
+│   ├── main.py          # FastAPI application
+│   └── venv/           # Python virtual environment
+├── frontend/
+│   ├── src/
+│   │   ├── components/  # React components
+│   │   ├── lib/        # Utility functions
+│   │   └── App.tsx     # Main application
+│   ├── package.json    # Dependencies
+│   └── vite.config.ts  # Vite configuration
+└── README.md
 ```
 
 ## Contributing
@@ -81,4 +73,4 @@ src/
 
 ## License
 
-This project is part of the ChemPredict AI system.
+© 2024 ChemPredict AI. All rights reserved.

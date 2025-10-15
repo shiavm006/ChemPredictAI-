@@ -80,21 +80,58 @@ export default function ChemPredictChat() {
     };
 
     setMessages(prev => [...prev, userMessage]);
+    const userMessageContent = message.trim();
     setMessage("");
     adjustHeight(true);
     setIsLoading(true);
 
-    // Simulate AI response (replace with actual API call)
-    setTimeout(() => {
+    try {
+      // Call Gemini-powered chat endpoint
+      const res = await fetch("http://127.0.0.1:8000/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+          message: userMessageContent,
+          session_id: "user-session-" + Date.now().toString().slice(-8)
+        }),
+      });
+
+      if (!res.ok) {
+        const errorText = await res.text();
+        throw new Error(`Server error: ${res.status} - ${errorText}`);
+      }
+
+      const data = await res.json();
+      
       const aiMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),
-        content: `I understand you're asking about "${message.trim()}". This is a simulated response for demonstration. In a real implementation, this would connect to your AI backend for chemical analysis and research assistance.`,
+        content: data.response,
         role: 'assistant',
         timestamp: new Date(),
       };
+      
       setMessages(prev => [...prev, aiMessage]);
+    } catch (err: any) {
+      console.error("Chat error:", err);
+      
+      let errorMessage = "I apologize, but I'm having trouble connecting to the research assistant.";
+      
+      if (err.message.includes('fetch')) {
+        errorMessage = "Cannot connect to the AI backend. Please ensure the server is running on http://127.0.0.1:8000";
+      } else if (err.message.includes('503')) {
+        errorMessage = "The AI service is temporarily unavailable. Please check that your GOOGLE_API_KEY is configured in the backend.";
+      }
+      
+      const errorAiMessage: ChatMessage = {
+        id: (Date.now() + 1).toString(),
+        content: errorMessage,
+        role: 'assistant',
+        timestamp: new Date(),
+      };
+      setMessages(prev => [...prev, errorAiMessage]);
+    } finally {
       setIsLoading(false);
-    }, 1500);
+    }
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
