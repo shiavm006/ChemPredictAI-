@@ -9,7 +9,7 @@ load_dotenv()
 
 api_key = os.getenv("GOOGLE_API_KEY")
 if not api_key:
-    print("❌ No API key found!")
+    print("No API key found!")
     exit(1)
 
 print(f"✓ API key found: {api_key[:10]}...{api_key[-4:]}\n")
