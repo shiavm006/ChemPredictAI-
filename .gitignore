@@ -4,3 +4,6 @@ backend/ML_Model/models/*.pkl
 
 # Data files
 backend/data/
+
+# Environment variables
+.env
