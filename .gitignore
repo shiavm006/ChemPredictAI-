@@ -1,0 +1,6 @@
+
+# ML Model files
+backend/ML_Model/models/*.pkl
+
+# Data files
+backend/data/
