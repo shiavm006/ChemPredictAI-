@@ -23,6 +23,3 @@ transformers==4.37.0
 rdkit-pypi==2022.9.5
 cirpy==1.0.2
 rxn4chemistry==1.9.0
-
-# hugging face for model downloads
-huggingface_hub==0.20.0
