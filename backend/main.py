@@ -34,7 +34,7 @@ try:
     import torch
     from transformers import AutoModel
     from rxn4chemistry import RXN4ChemistryWrapper
-    from ML_Model.utils.smiles_utils import name_to_smiles
+    from ML_Model.utils.smiles_utils import name_to_smiles, smiles_to_name, is_valid_smiles
     from ML_Model.predict.predict_reaction import predict_reaction as ml_predict_reaction
 
     print("✓ ML dependencies loaded")
@@ -118,41 +118,34 @@ def predict_all(data: ReactionInput):
         )
     
     try:
-        r1_smiles = name_to_smiles(data.reactant1)
-        r2_smiles = name_to_smiles(data.reactant2)
-        
-        if not r1_smiles or not r2_smiles:
-            raise HTTPException(
-                status_code=400, 
-                detail="Could not convert reactant names to SMILES. Try using chemical names like 'benzene' or 'ethanol'"
-            )
-        
         product_smiles = None
         product_name = "Reaction Product"
         
         try:
-            reaction_smiles = f"{r1_smiles}.{r2_smiles}>>"
-            print(f"RXN API call: {reaction_smiles}")
-            prediction = rxn.predict_reaction(reaction_smiles)
+            reaction_type, hazard, ml_product = ml_predict_reaction(data.reactant1, data.reactant2, input_type="name")
+            print(f"ML Predicted: type={reaction_type}, hazard={hazard}, product={ml_product}")
             
-            if prediction and prediction.get("products"):
-                product_smiles = prediction["products"][0]
-                print(f"Product: {product_smiles}")
-        except Exception as rxn_error:
-            print(f"RXN prediction failed: {rxn_error}")
-        
-        try:
-            reaction_type, hazard = ml_predict_reaction(r1_smiles, r2_smiles, product_smiles, input_type="smiles")
-            print(f"Predicted: {reaction_type}, {hazard}")
+            r1_smiles = name_to_smiles(data.reactant1) or data.reactant1
+            r2_smiles = name_to_smiles(data.reactant2) or data.reactant2
+            
+            if ml_product:
+                if is_valid_smiles(ml_product):
+                    product_smiles = ml_product
+                    product_name = smiles_to_name(ml_product)
+                    print(f"Converted SMILES to name: {product_name}")
+                else:
+                    product_name = ml_product
+                    product_smiles = name_to_smiles(ml_product) or ml_product
+            else:
+                product_name = f"{data.reactant1} + {data.reactant2} → Product"
+                
         except Exception as ml_error:
             print(f"ML error: {ml_error}")
             reaction_type = "Substitution"
             hazard = "Medium"
-        
-        if product_smiles and product_smiles != "C":
-            product_name = product_smiles
-        else:
             product_name = f"{data.reactant1} + {data.reactant2} → Product"
+            r1_smiles = name_to_smiles(data.reactant1) or data.reactant1
+            r2_smiles = name_to_smiles(data.reactant2) or data.reactant2
         
         predicted_yield = round(random.uniform(70, 95), 1)
         
@@ -172,8 +165,8 @@ def predict_all(data: ReactionInput):
             "predicted_yield": f"{predicted_yield}%",
             "reactant1_smiles": r1_smiles,
             "reactant2_smiles": r2_smiles,
-            "product_smiles": product_smiles or "N/A",
-            "prediction_method": "ml_chemberta"
+            "product_smiles": product_smiles or product_name,
+            "prediction_method": "ml_model"
         }
 
     except HTTPException:

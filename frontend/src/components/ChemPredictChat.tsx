@@ -142,7 +142,7 @@ export default function ChemPredictChat() {
   };
 
   return (
-    <div className="relative w-full h-screen bg-gradient-to-br from-black via-gray-900 to-black">
+    <div className="relative w-full h-screen bg-black">
       {/* Chat Messages */}
       <div className="h-full pb-32 overflow-y-auto px-4 py-6">
         <div className="max-w-4xl mx-auto space-y-6">
