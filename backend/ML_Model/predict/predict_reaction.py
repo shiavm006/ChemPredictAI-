@@ -2,8 +2,15 @@ import joblib
 from ML_Model.utils.smiles_utils import is_valid_reaction_smiles, name_to_smiles, is_valid_smiles
 from ML_Model.models.chemberta_features import get_chemberta_features
 from ML_Model.models.productPredictor import predict_product
+from pathlib import Path
 
-models_dir = "ML_Model/models"
+# Step 1: Get user's Downloads folder
+downloads_folder = Path.home() / "Downloads"
+
+# Step 2: Path to TrainedData folder
+models_dir = downloads_folder / "TrainedData"
+
+# models_dir = "ML_Model/models"
 clf_type = joblib.load(f"{models_dir}/reaction_type_model.pkl")
 le_type = joblib.load(f"{models_dir}/reaction_type_encoder.pkl")
 clf_hazard = joblib.load(f"{models_dir}/hazard_level_model.pkl")
