@@ -1,4 +1,3 @@
-# main.py
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -7,18 +6,29 @@ from datetime import datetime
 from chat_service import chatbot
 from dotenv import load_dotenv
 import os
+from langchain_google_genai import ChatGoogleGenerativeAI
 
-# Load environment variables
 load_dotenv()
 RXN_API_KEY = os.getenv("RXN4CHEMISTRY_API_KEY")
+GEMINI_API_KEY = os.getenv("GOOGLE_API_KEY")
 
-# ML model imports
+gemini_llm = None
+if GEMINI_API_KEY:
+    try:
+        gemini_llm = ChatGoogleGenerativeAI(
+            model="gemini-2.5-flash",
+            google_api_key=GEMINI_API_KEY,
+            temperature=0.7
+        )
+        print("Gemini initialized")
+    except Exception as e:
+        print(f"Gemini initialization failed: {e}")
+
 ML_MODEL_AVAILABLE = False
 rxn = None
 
 try:
-    print("⏳ loading ml dependencies...")
-
+    print("⏳ Loading ML dependencies...")
     from rdkit import Chem
     import cirpy
     import torch
@@ -27,30 +37,26 @@ try:
     from ML_Model.utils.smiles_utils import name_to_smiles
     from ML_Model.predict.predict_reaction import predict_reaction as ml_predict_reaction
 
-    print("✓ All ML dependencies loaded")
+    print("✓ ML dependencies loaded")
 
     if RXN_API_KEY:
-        print("⏳ initializing rxn4chemistry with API key...")
+        print("⏳ Initializing RXN4Chemistry...")
         rxn = RXN4ChemistryWrapper(api_key=RXN_API_KEY)
-        # Create a default project or use existing one
         try:
             rxn.create_project('chempredict-ai')
         except:
-            # Project might already exist, that's ok
             pass
         ML_MODEL_AVAILABLE = True
-        print("✅ ML model and rxn4chemistry initialized successfully")
+        print("ML model initialized")
     else:
-        print("⚠️ RXN4Chemistry API key not found. Add RXN4CHEMISTRY_API_KEY to .env")
+        print("RXN4Chemistry API key not found")
         ML_MODEL_AVAILABLE = False
 
 except Exception as e:
-    print(f"⚠️ ML model not available: {e}")
-    print("   falling back to rule-based predictions")
+    print(f"ML model unavailable: {e}")
     ML_MODEL_AVAILABLE = False
     rxn = None
 
-# FastAPI setup
 app = FastAPI(title="ChemPredict AI")
 
 app.add_middleware(
@@ -61,19 +67,44 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Input models
 class ReactionInput(BaseModel):
     reactant1: str
     reactant2: str
-
-class CompoundInput(BaseModel):
-    compound: str
 
 class ChatInput(BaseModel):
     message: str
     session_id: str = "default"
 
-# Routes
+def generate_reaction_description(reactant1: str, reactant2: str, reaction_type: str, hazard_level: str) -> str:
+    if not gemini_llm:
+        return f"A {reaction_type} reaction between {reactant1} and {reactant2}."
+    
+    try:
+        prompt = f"""You are a chemistry expert. Provide a detailed, educational description of the following chemical reaction.
+
+Reactants: {reactant1} and {reactant2}
+Predicted Reaction Type: {reaction_type}
+Safety Hazard Level: {hazard_level}
+
+Write a comprehensive 2-3 paragraph description that includes:
+1. What type of reaction this is and its mechanism
+2. The expected products and how they form
+3. Important safety considerations and hazards
+4. Practical applications or significance of this reaction
+5. Typical reaction conditions (temperature, catalysts, etc.)
+
+Keep it scientific but accessible. Write in a clear, educational tone.
+IMPORTANT: Write in plain text WITHOUT any markdown formatting (no **, *, #, etc.)."""
+
+        response = gemini_llm.predict(prompt)
+        cleaned = response.strip()
+        cleaned = cleaned.replace('**', '').replace('*', '')
+        cleaned = cleaned.replace('###', '').replace('##', '').replace('#', '')
+        return cleaned
+    except Exception as e:
+        print(f"Error generating description: {e}")
+        return f"A {reaction_type} reaction between {reactant1} and {reactant2} with {hazard_level.lower()} safety hazard level."
+
 @app.get("/")
 def home():
     return {"message": "ChemPredict AI API is running"}
@@ -83,59 +114,61 @@ def predict_all(data: ReactionInput):
     if not ML_MODEL_AVAILABLE:
         raise HTTPException(
             status_code=503,
-            detail="ML model not available. Add RXN4CHEMISTRY_API_KEY to .env or install dependencies."
+            detail="ML model not available. Install dependencies or add RXN4CHEMISTRY_API_KEY to .env"
         )
+    
     try:
-        # Step 1: Convert names to SMILES
         r1_smiles = name_to_smiles(data.reactant1)
         r2_smiles = name_to_smiles(data.reactant2)
         
         if not r1_smiles or not r2_smiles:
             raise HTTPException(
                 status_code=400, 
-                detail=f"Could not convert reactant names to SMILES. Try using chemical formulas like 'benzene' or 'ethanol'"
+                detail="Could not convert reactant names to SMILES. Try using chemical names like 'benzene' or 'ethanol'"
             )
         
-        # Step 2: Try to predict product using RXN (optional)
         product_smiles = None
         product_name = "Reaction Product"
         
         try:
             reaction_smiles = f"{r1_smiles}.{r2_smiles}>>"
-            print(f"Calling RXN API with: {reaction_smiles}")
+            print(f"RXN API call: {reaction_smiles}")
             prediction = rxn.predict_reaction(reaction_smiles)
-            print(f"RXN response: {prediction}")
             
             if prediction and prediction.get("products"):
                 product_smiles = prediction["products"][0]
-                print(f"Product SMILES: {product_smiles}")
+                print(f"Product: {product_smiles}")
         except Exception as rxn_error:
-            print(f"RXN prediction failed (not critical): {rxn_error}")
+            print(f"RXN prediction failed: {rxn_error}")
         
-        # Step 3: Use trained ML models to predict reaction type and hazard
-        # ML models can work with or without product SMILES
         try:
             reaction_type, hazard = ml_predict_reaction(r1_smiles, r2_smiles, product_smiles, input_type="smiles")
-            print(f"ML prediction: type={reaction_type}, hazard={hazard}")
+            print(f"Predicted: {reaction_type}, {hazard}")
         except Exception as ml_error:
-            print(f"ML prediction error: {ml_error}")
-            # Fallback to simple classification
+            print(f"ML error: {ml_error}")
             reaction_type = "Substitution"
             hazard = "Medium"
         
-        # Generate a human-readable product name if we got SMILES
         if product_smiles and product_smiles != "C":
-            product_name = product_smiles  # Could convert back to name, but SMILES is fine for now
+            product_name = product_smiles
         else:
             product_name = f"{data.reactant1} + {data.reactant2} → Product"
         
         predicted_yield = round(random.uniform(70, 95), 1)
+        
+        print(f"Generating description...")
+        reaction_description = generate_reaction_description(
+            data.reactant1, 
+            data.reactant2, 
+            reaction_type, 
+            hazard
+        )
 
         return {
             "reaction_type": reaction_type,
             "product": product_name,
             "safety_hazard_level": hazard,
-            "reaction_description": f"ML-predicted {reaction_type} reaction between {data.reactant1} and {data.reactant2}. The trained ChemBERTa model classifies this reaction based on reactant structures.",
+            "reaction_description": reaction_description,
             "predicted_yield": f"{predicted_yield}%",
             "reactant1_smiles": r1_smiles,
             "reactant2_smiles": r2_smiles,
@@ -146,58 +179,14 @@ def predict_all(data: ReactionInput):
     except HTTPException:
         raise
     except Exception as e:
-        print(f"Error in predict_all: {str(e)}")
+        print(f"Error: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Error in ML prediction: {str(e)}")
-
-# Rule-based fallback prediction
-@app.post("/predict")
-def predict(data: ReactionInput):
-    reactant1 = data.reactant1.lower()
-    reactant2 = data.reactant2.lower()
-    
-    # Predefined reaction rules (same as your previous code)
-    reactions = {
-        "esterification": { ... },  # Copy your previous reaction dict here
-        "hydrolysis": { ... },
-        "oxidation": { ... },
-        "reduction": { ... },
-        "substitution": { ... },
-        "polymerization": { ... }
-    }
-
-    # Logic for reaction selection (same as before)
-    if any(acid in reactant1 for acid in ["acid", "hcl", "h2so4", "ch3cooh", "acetic"]) and \
-       any(alcohol in reactant2 for alcohol in ["oh", "ethanol", "methanol"]):
-        selected_reaction = reactions["esterification"]
-    elif any(water in reactant1 or water in reactant2 for water in ["h2o", "water"]):
-        selected_reaction = reactions["hydrolysis"]
-    elif any(oxidizer in reactant1 or oxidizer in reactant2 for oxidizer in ["o2", "oxygen", "h2o2", "peroxide"]):
-        selected_reaction = reactions["oxidation"]
-    elif any(reducer in reactant1 or reducer in reactant2 for reducer in ["h2", "hydrogen", "na", "sodium"]):
-        selected_reaction = reactions["reduction"]
-    elif any(monomer in reactant1 or monomer in reactant2 for monomer in ["ethene", "ethylene", "propene"]):
-        selected_reaction = reactions["polymerization"]
-    else:
-        selected_reaction = random.choice(list(reactions.values()))
-
-    return {
-        "reaction_type": selected_reaction["reaction_type"],
-        "product": selected_reaction["product"],
-        "safety_hazard_level": selected_reaction["safety_hazard_level"],
-        "reaction_description": selected_reaction["reaction_description"],
-        "predicted_yield": f"{selected_reaction['predicted_yield']}%"
-    }
-
-@app.post("/predict_single")
-def predict_single_compound(data: CompoundInput):
-    compound = data.compound.lower()
-    # Your previous compound prediction logic
-    ...
 
 @app.post("/chat")
 async def research_chat(data: ChatInput):
     if chatbot is None:
         raise HTTPException(status_code=503, detail="Chatbot service not available")
+    
     try:
         response = chatbot.chat(user_message=data.message, session_id=data.session_id)
         return {
@@ -208,14 +197,15 @@ async def research_chat(data: ChatInput):
             "model": "gemini-2.5-flash"
         }
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error processing chat request: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
 
 @app.post("/chat/clear")
 async def clear_chat_session(session_id: str = "default"):
     if chatbot is None:
         raise HTTPException(status_code=503, detail="Chatbot service not available")
+    
     try:
         chatbot.clear_session(session_id)
-        return {"message": f"Session {session_id} cleared successfully"}
+        return {"message": f"Session {session_id} cleared"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

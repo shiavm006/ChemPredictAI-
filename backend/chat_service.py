@@ -1,8 +1,3 @@
-"""
-ChemPredict AI Research Chatbot powered by Google Gemini
-Provides chemistry research assistance using LangChain (no embeddings)
-"""
-
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain.memory import ConversationBufferMemory
 from langchain.chains import ConversationChain
@@ -11,21 +6,14 @@ from typing import Dict
 import os
 from dotenv import load_dotenv
 
-# load environment variables
 load_dotenv()
 
 class ChemicalResearchChatbot:
-    """gemini-powered chatbot for chemistry research assistance"""
-    
     def __init__(self):
-        """initialize the chatbot with gemini pro"""
-        
-        # get api key from environment
         api_key = os.getenv("GOOGLE_API_KEY")
         if not api_key:
             raise ValueError("GOOGLE_API_KEY not found in environment variables")
         
-        # initialize gemini model (free tier)
         self.llm = ChatGoogleGenerativeAI(
             model="gemini-2.5-flash",
             google_api_key=api_key,
@@ -34,16 +22,11 @@ class ChemicalResearchChatbot:
             max_output_tokens=2000
         )
         
-        # initialize conversation memory (stores chat history per session)
         self.memories = {}
-        
-        # create custom chemistry-focused prompt
         self.prompt = self._create_chemistry_prompt()
     
     def _create_chemistry_prompt(self) -> PromptTemplate:
-        """create custom prompt template for chemistry research"""
-        
-        template = """you are chempredict ai research assistant, an expert chemistry advisor powered by google gemini.
+        template = """you are chempredict ai research assistant, an expert chemistry advisor a self trained model.
 
 your expertise covers:
 - organic, inorganic, and biochemical reactions
@@ -91,6 +74,7 @@ guidelines:
 4. acknowledge uncertainty if unsure
 5. suggest practical applications
 6. use proper chemical nomenclature
+7. write in plain text without markdown formatting
 
 answer:"""
         
@@ -100,7 +84,6 @@ answer:"""
         )
     
     def _get_memory(self, session_id: str) -> ConversationBufferMemory:
-        """get or create conversation memory for a session"""
         if session_id not in self.memories:
             self.memories[session_id] = ConversationBufferMemory(
                 memory_key="history",
@@ -109,61 +92,49 @@ answer:"""
         return self.memories[session_id]
     
     def chat(self, user_message: str, session_id: str = "default") -> Dict:
-        """
-        process user message and return ai response
-        
-        args:
-            user_message: user's chemistry question
-            session_id: session identifier for conversation history
-            
-        returns:
-            dictionary with answer and metadata
-        """
         try:
-            print(f"[chat] processing message: {user_message[:50]}...")
+            print(f"[chat] {user_message[:50]}...")
             
-            # get session memory
             memory = self._get_memory(session_id)
-            print(f"[chat] memory loaded for session: {session_id}")
+            print(f"[chat] session: {session_id}")
             
-            # create conversational chain (no rag, no embeddings)
             chain = ConversationChain(
                 llm=self.llm,
                 memory=memory,
                 prompt=self.prompt,
                 verbose=False
             )
-            print("[chat] chain created, calling gemini...")
+            print("[chat] calling gemini...")
             
-            # get response from chain
             response = chain.predict(input=user_message)
-            print(f"[chat] response received: {response[:100]}...")
+            print(f"[chat] response: {response[:100]}...")
+            
+            cleaned_response = response.strip()
+            cleaned_response = cleaned_response.replace('**', '').replace('*', '')
+            cleaned_response = cleaned_response.replace('###', '').replace('##', '').replace('#', '')
             
             return {
-                "answer": response,
+                "answer": cleaned_response,
                 "sources": [],
                 "session_id": session_id
             }
             
         except Exception as e:
             print(f"[chat] error: {str(e)}")
-            error_message = f"i encountered an error processing your question: {str(e)}"
             return {
-                "answer": error_message,
+                "answer": f"i encountered an error processing your question: {str(e)}",
                 "sources": [],
                 "session_id": session_id,
                 "error": True
             }
     
     def clear_session(self, session_id: str):
-        """clear conversation history for a session"""
         if session_id in self.memories:
             del self.memories[session_id]
 
-# initialize global chatbot instance (loaded once when server starts)
 try:
     chatbot = ChemicalResearchChatbot()
-    print("✅ chempredict ai chatbot initialized successfully with gemini-2.5-flash")
+    print("✅ chatbot initialized")
 except Exception as e:
-    print(f"❌ error initializing chatbot: {e}")
+    print(f"❌ chatbot initialization failed: {e}")
     chatbot = None
