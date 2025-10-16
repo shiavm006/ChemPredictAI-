@@ -28,6 +28,24 @@ def is_valid_reaction_smiles(reaction_smiles):
         return False
 
 def name_to_smiles(name):
+    common_chemicals = {
+        "hydrochloric acid": "Cl",
+        "nitric acid": "[N+](=O)(O)[O-]",
+        "sulfuric acid": "OS(=O)(=O)O",
+        "acetic acid": "CC(=O)O",
+        "formic acid": "C(=O)O",
+        "phosphoric acid": "OP(=O)(O)O",
+        "carbonic acid": "OC(=O)O",
+        "hydrogen chloride": "Cl",
+        "hcl": "Cl",
+        "h2so4": "OS(=O)(=O)O",
+        "hno3": "[N+](=O)(O)[O-]",
+    }
+    
+    name_lower = name.lower().strip()
+    if name_lower in common_chemicals:
+        return common_chemicals[name_lower]
+    
     result = cirpy.resolve(name, 'smiles')
     return result if result else None
 

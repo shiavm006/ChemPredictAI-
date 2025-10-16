@@ -28,7 +28,11 @@ ML_MODEL_AVAILABLE = False
 rxn = None
 
 try:
-    print("⏳ Loading ML dependencies...")
+    print("⏳ downloading ml models if needed...")
+    from setup_models import download_models
+    download_models()
+    
+    print("⏳ loading ml dependencies...")
     from rdkit import Chem
     import cirpy
     import torch
@@ -37,7 +41,7 @@ try:
     from ML_Model.utils.smiles_utils import name_to_smiles, smiles_to_name, is_valid_smiles
     from ML_Model.predict.predict_reaction import predict_reaction as ml_predict_reaction
 
-    print("✓ ML dependencies loaded")
+    print("✓ ml dependencies loaded")
 
     if RXN_API_KEY:
         print("⏳ Initializing RXN4Chemistry...")
