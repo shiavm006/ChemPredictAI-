@@ -5,6 +5,7 @@ import random
 from datetime import datetime
 from chat_service import chatbot
 from dotenv import load_dotenv
+import json
 import os
 from langchain_google_genai import ChatGoogleGenerativeAI
 
@@ -29,28 +30,28 @@ rxn = None
 
 try:
     print("⏳ Loading ML dependencies...")
-    from rdkit import Chem
+    # from rdkit import Chem
     import cirpy
     import torch
     from transformers import AutoModel
-    from rxn4chemistry import RXN4ChemistryWrapper
+    # from rxn4chemistry import RXN4ChemistryWrapper
     from ML_Model.utils.smiles_utils import name_to_smiles, smiles_to_name, is_valid_smiles
-    from ML_Model.predict.predict_reaction import predict_reaction as ml_predict_reaction
+    # from ML_Model.predict.predict_reaction import predict_reaction as ml_predict_reaction
 
     print("✓ ML dependencies loaded")
-
-    if RXN_API_KEY:
-        print("⏳ Initializing RXN4Chemistry...")
-        rxn = RXN4ChemistryWrapper(api_key=RXN_API_KEY)
-        try:
-            rxn.create_project('chempredict-ai')
-        except:
-            pass
-        ML_MODEL_AVAILABLE = True
-        print("ML model initialized")
-    else:
-        print("RXN4Chemistry API key not found")
-        ML_MODEL_AVAILABLE = False
+    ML_MODEL_AVAILABLE = True
+    # if RXN_API_KEY:
+    #     print("⏳ Initializing RXN4Chemistry...")
+    #     rxn = RXN4ChemistryWrapper(api_key=RXN_API_KEY)
+    #     try:
+    #         rxn.create_project('chempredict-ai')
+    #     except:
+    #         pass
+    #     ML_MODEL_AVAILABLE = True
+    #     print("ML model initialized")
+    # else:
+    #     print("RXN4Chemistry API key not found")
+    #     ML_MODEL_AVAILABLE = False
 
 except Exception as e:
     print(f"ML model unavailable: {e}")
@@ -104,6 +105,70 @@ IMPORTANT: Write in plain text WITHOUT any markdown formatting (no **, *, #, etc
     except Exception as e:
         print(f"Error generating description: {e}")
         return f"A {reaction_type} reaction between {reactant1} and {reactant2} with {hazard_level.lower()} safety hazard level."
+
+def predict_product_with_gemini(reactant1: str, reactant2: str) -> dict:
+    """ask gemini to predict primary product and related metadata in strict json.
+
+    returns a dict with keys: product, product_smiles, reaction_type, safety_hazard_level,
+    predicted_yield, reaction_description.
+    """
+    if not gemini_llm:
+        raise HTTPException(status_code=503, detail="Gemini model not initialized")
+
+    system_instructions = (
+        "you are a senior organic chemistry expert. given two reactants, predict the most likely primary product. "
+        "respond as compact json only with the following keys: product, product_smiles, reaction_type, "
+        "safety_hazard_level, predicted_yield, reaction_description. do not include markdown. "
+        "product should be a common name if known; product_smiles should be a single canonical smiles if certain, else empty string. "
+        "reaction_description should be 3-5 sentences, plain text. predicted_yield should be a percentage number (e.g., 82)."
+    )
+
+    user_prompt = (
+        f"Reactant 1: {reactant1}\n"
+        f"Reactant 2: {reactant2}\n"
+        "Output JSON schema example: {\n"
+        "  \"product\": \"ethyl acetate\",\n"
+        "  \"product_smiles\": \"CCOC(=O)C\",\n"
+        "  \"reaction_type\": \"Esterification\",\n"
+        "  \"safety_hazard_level\": \"Medium\",\n"
+        "  \"predicted_yield\": 82,\n"
+        "  \"reaction_description\": \"...plain text...\"\n"
+        "}"
+    )
+
+    try:
+        response_text = gemini_llm.predict(f"{system_instructions}\n\n{user_prompt}")
+        cleaned = response_text.strip()
+        cleaned = cleaned.replace('**', '').replace('*', '')
+        cleaned = cleaned.replace('###', '').replace('##', '').replace('#', '')
+        # try direct json parse; if model wrapped in code fences, strip
+        if cleaned.startswith("```") and cleaned.endswith("```"):
+            cleaned = cleaned.strip("`")
+        # attempt to locate first and last braces
+        start = cleaned.find('{')
+        end = cleaned.rfind('}')
+        if start != -1 and end != -1:
+            cleaned = cleaned[start:end+1]
+        data = json.loads(cleaned)
+        # normalize fields
+        data.setdefault("product", "Unknown product")
+        data.setdefault("product_smiles", "")
+        data.setdefault("reaction_type", "Unknown")
+        data.setdefault("safety_hazard_level", "Medium")
+        # ensure predicted_yield is a number 0-100
+        try:
+            py = float(data.get("predicted_yield", 80))
+            py = max(0.0, min(100.0, py))
+            data["predicted_yield"] = round(py, 1)
+        except Exception:
+            data["predicted_yield"] = 80.0
+        desc = str(data.get("reaction_description", "")).strip()
+        if not desc:
+            desc = generate_reaction_description(reactant1, reactant2, data["reaction_type"], data["safety_hazard_level"]) 
+        data["reaction_description"] = desc
+        return data
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Gemini prediction failed: {str(e)}")
 
 @app.get("/")
 def home():
@@ -191,6 +256,40 @@ async def research_chat(data: ChatInput):
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
+
+@app.post("/predict_product_llm")
+def predict_product_llm(data: ReactionInput):
+    """predict product using gemini via langchain as a fallback/simple path."""
+    try:
+        gemini_result = predict_product_with_gemini(data.reactant1, data.reactant2)
+        # attempt smiles conversions when available
+        try:
+            r1_smiles = name_to_smiles(data.reactant1) or data.reactant1
+        except Exception:
+            r1_smiles = data.reactant1
+        try:
+            r2_smiles = name_to_smiles(data.reactant2) or data.reactant2
+        except Exception:
+            r2_smiles = data.reactant2
+
+        product_name = gemini_result.get("product", "Unknown product")
+        product_smiles = gemini_result.get("product_smiles") or product_name
+
+        return {
+            "reaction_type": gemini_result.get("reaction_type", "Unknown"),
+            "product": product_name,
+            "safety_hazard_level": gemini_result.get("safety_hazard_level", "Medium"),
+            "reaction_description": gemini_result.get("reaction_description", ""),
+            "predicted_yield": f"{gemini_result.get('predicted_yield', 80.0)}%",
+            "reactant1_smiles": r1_smiles,
+            "reactant2_smiles": r2_smiles,
+            "product_smiles": product_smiles,
+            "prediction_method": "gemini-2.5-flash"
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error in LLM prediction: {str(e)}")
 
 @app.post("/chat/clear")
 async def clear_chat_session(session_id: str = "default"):

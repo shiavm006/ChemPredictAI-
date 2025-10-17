@@ -106,18 +106,27 @@ function App() {
     setResult(null);
 
     try {
-      // use ml model endpoint only
-      const endpoint = "http://127.0.0.1:8000/predict_all";
-      
-      const res = await fetch(endpoint, {
+      // prefer llm endpoint; fallback to ml if unavailable
+      const llmEndpoint = "http://127.0.0.1:8000/predict_product_llm";
+      const mlEndpoint = "http://127.0.0.1:8000/predict_all";
+
+      let res = await fetch(llmEndpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ reactant1: r1, reactant2: r2 }),
       });
 
       if (!res.ok) {
-        const errorText = await res.text();
-        throw new Error(`Server error: ${res.status} - ${errorText}`);
+        // fallback if llm route not available
+        res = await fetch(mlEndpoint, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ reactant1: r1, reactant2: r2 }),
+        });
+        if (!res.ok) {
+          const errorText = await res.text();
+          throw new Error(`Server error: ${res.status} - ${errorText}`);
+        }
       }
 
       const data: ReactionResult = await res.json();

@@ -37,9 +37,10 @@ try:
     print("✓ Feature extraction successful")
     print(f"Features shape: {features.shape}")
     
-    print("\n🎉 All tests passed! ML models are working correctly.")
+    print("\nAll tests passed! ML models are working correctly.")
     
 except Exception as e:
-    print(f"❌ Error: {e}")
+    print(f"Error: {e}")
     import traceback
     traceback.print_exc()
+
