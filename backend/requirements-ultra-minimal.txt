@@ -9,14 +9,6 @@ langchain==0.1.16
 langchain-google-genai==1.0.1
 google-generativeai==0.4.1
 
-# Data processing - using more compatible versions
-pandas==2.1.4
-numpy==1.24.4
-
-# Machine learning - minimal set
-scikit-learn==1.5.0
-joblib==1.4.2
-
 # Additional dependencies for deployment
 gunicorn==21.2.0
 python-multipart==0.0.9
