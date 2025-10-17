@@ -2,11 +2,13 @@ services:
   - type: web
     name: chempredict-ai-backend
     env: python
-    buildCommand: pip install -r backend/requirements.txt
-    startCommand: cd backend && uvicorn main:app --host 0.0.0.0 --port $PORT
+    buildCommand: |
+      pip install --upgrade pip
+      pip install -r backend/requirements-minimal.txt --no-cache-dir
+    startCommand: cd backend && uvicorn main:app --host 0.0.0.0 --port $PORT --workers 1
     envVars:
       - key: PYTHON_VERSION
-        value: 3.11.0
+        value: 3.11.9
       - key: GOOGLE_API_KEY
         sync: false
       - key: RXN4CHEMISTRY_API_KEY
@@ -17,5 +19,7 @@ services:
         value: 2000
       - key: SESSION_TIMEOUT_MINUTES
         value: 30
+      - key: PYTHONPATH
+        value: /opt/render/project/src/backend
     healthCheckPath: /
     plan: starter

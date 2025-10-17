@@ -31,11 +31,11 @@ rxn = None
 try:
     print("⏳ Loading ML dependencies...")
     # from rdkit import Chem
-    import cirpy
-    import torch
-    from transformers import AutoModel
+    # import cirpy
+    # import torch
+    # from transformers import AutoModel
     # from rxn4chemistry import RXN4ChemistryWrapper
-    from ML_Model.utils.smiles_utils import name_to_smiles, smiles_to_name, is_valid_smiles
+    # from ML_Model.utils.smiles_utils import name_to_smiles, smiles_to_name, is_valid_smiles
     # from ML_Model.predict.predict_reaction import predict_reaction as ml_predict_reaction
 
     print("✓ ML dependencies loaded")
@@ -177,10 +177,8 @@ def home():
 @app.post("/predict_all")
 def predict_all(data: ReactionInput):
     if not ML_MODEL_AVAILABLE:
-        raise HTTPException(
-            status_code=503,
-            detail="ML model not available. Install dependencies or add RXN4CHEMISTRY_API_KEY to .env"
-        )
+        # Fallback to LLM prediction when ML model is not available
+        return predict_product_llm(data)
     
     try:
         product_smiles = None
