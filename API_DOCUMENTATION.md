@@ -18,10 +18,10 @@ Check if the API is running.
 }
 ```
 
-### 2. Predict Reaction (ML + LLM)
+### 2. Predict Reaction (ML Models)
 **POST** `/predict_all`
 
-Predict chemical reaction using both ML models and LLM.
+Predict chemical reaction using trained ML models on 31k+ chemical reactions.
 
 **Request Body:**
 ```json
@@ -46,38 +46,11 @@ Predict chemical reaction using both ML models and LLM.
 }
 ```
 
-### 3. Predict Reaction (LLM Only)
-**POST** `/predict_product_llm`
 
-Predict chemical reaction using only LLM (Gemini).
-
-**Request Body:**
-```json
-{
-  "reactant1": "benzene",
-  "reactant2": "nitric acid"
-}
-```
-
-**Response:**
-```json
-{
-  "reaction_type": "Electrophilic Aromatic Substitution",
-  "product": "Nitrobenzene",
-  "safety_hazard_level": "High",
-  "reaction_description": "This is an electrophilic aromatic substitution reaction where benzene undergoes nitration with nitric acid in the presence of sulfuric acid catalyst. The reaction produces nitrobenzene, which is highly toxic and explosive.",
-  "predicted_yield": "78%",
-  "reactant1_smiles": "c1ccccc1",
-  "reactant2_smiles": "N(=O)(=O)O",
-  "product_smiles": "c1ccc(cc1)[N+](=O)[O-]",
-  "prediction_method": "gemini-2.5-flash"
-}
-```
-
-### 4. Chat with AI Assistant
+### 4. Research Chat
 **POST** `/chat`
 
-Interactive chat with the chemistry AI assistant.
+Interactive chat with chemistry research assistant powered by LangChain and Gemini API.
 
 **Request Body:**
 ```json
@@ -245,7 +218,6 @@ Currently, the API does not require authentication. Rate limiting is applied:
 | Endpoint | Rate Limit | Token Limit |
 |----------|------------|-------------|
 | `/predict_all` | 60/min | 2000 tokens |
-| `/predict_product_llm` | 60/min | 2000 tokens |
 | `/chat` | 60/min | 2000 tokens |
 | `/chat/clear` | 60/min | N/A |
 
@@ -265,9 +237,9 @@ The trained dataset (31k+ chemical reactions) used for model training is availab
 3. **Model Size**: Large model files requiring optimization
 
 ### Workarounds
-- Use `/predict_product_llm` endpoint for LLM-only predictions
 - Local development includes full ML functionality
 - Production will have ML models available soon
+- Research chat works with LangChain and Gemini API
 
 ## Status Updates
 

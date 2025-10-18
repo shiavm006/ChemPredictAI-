@@ -80,46 +80,27 @@ def test_chat_response():
         return False
 
 def main():
-    """Run all tests"""
-    print("=" * 60)
-    print("ChemPredict AI - Gemini Setup Test")
-    print("=" * 60)
-    print()
+    print("Testing setup...")
     
     tests = [
-        ("API Key Configuration", test_api_key),
-        ("Package Installation", test_imports),
-        ("Chatbot Initialization", test_chatbot),
-        ("Chat Response", test_chat_response)
+        ("API Key", test_api_key),
+        ("Dependencies", test_imports),
+        ("Chatbot", test_chatbot),
+        ("Chat", test_chat_response)
     ]
     
     results = []
     for name, test_func in tests:
-        print(f"\n📋 Testing: {name}")
-        print("-" * 60)
+        print(f"Testing {name}...")
         results.append(test_func())
-        print()
-    
-    print("=" * 60)
-    print("Test Summary")
-    print("=" * 60)
     
     passed = sum(results)
-    total = len(results)
+    print(f"\nResult: {passed}/{len(results)} tests passed")
     
-    for i, (name, _) in enumerate(tests):
-        status = "PASS" if results[i] else "FAIL"
-        print(f"{status} - {name}")
-    
-    print()
-    print(f"Result: {passed}/{total} tests passed")
-    
-    if passed == total:
-        print("\nSUCCESS: All tests passed! Your setup is ready!")
-        print("Next step: Run 'uvicorn main:app --reload' to start the server")
+    if passed == len(results):
+        print("All good! Run 'uvicorn main:app --reload' to start")
     else:
-        print("\nWARNING: Some tests failed. Please fix the issues above and try again.")
-        print("TIP: Check GEMINI_SETUP_GUIDE.md for troubleshooting help")
+        print("Some tests failed, check errors above")
 
 if __name__ == "__main__":
     main()

@@ -17,20 +17,19 @@ The system takes two reactants (like "ethanol" and "acetic acid") and predicts:
 **Backend:**
 - FastAPI for the API
 - Python + scikit-learn for ML models
-- Google Gemini API for reasoning
 - ChromaDB for chemical knowledge storage
-- LangChain for chat
+- LangChain + Gemini API for research chat
 
 **Frontend:**
 - React + TypeScript
 - Tailwind CSS
 - Real-time chat interface
 
-**ML stuff:**
-- 3 separate models trained on chemical reaction data
+**ML Pipeline:**
+- 3 separate models trained on 31k+ chemical reactions
 - SMILES molecular representation
 - Feature engineering for chemical properties
-- Ensemble methods work best
+- Ensemble methods for better accuracy
 
 ## Data & Models
 
@@ -49,25 +48,24 @@ Used molecular fingerprints and chemical descriptors as features. Tried differen
 
 1. User enters two chemicals (e.g., "ethanol" + "acetic acid")
 2. Convert names to SMILES, extract molecular features
-3. Run through trained models to get reaction type, hazard level, and product
-4. Gemini adds detailed explanations and safety info
-5. Return complete prediction with mechanism explanation
+3. Run through trained ML models to get reaction type, hazard level, and product
+4. Return complete prediction with mechanism explanation
 
-The tricky part was getting ML models and LLM to work together. ML models give the "what", Gemini explains the "why" and "how".
+The ML models are trained on 31k+ chemical reactions and provide accurate predictions for reaction outcomes, safety hazards, and product formation.
 
 ## Current status
 
 **Working:**
 - Backend API deployed and running
 - Frontend is live
-- Chat system works
-- LLM predictions are operational
+- Research chat system works
+- ML model predictions are operational locally
 
 **Still working on:**
 ML models work great locally but having deployment issues. Chemistry libraries (like RDKit) are huge and don't play nice with cloud deployment. Working on optimizing the build process.
 
 **For now:**
-You can test everything locally - ML models work perfectly on your machine. Deployed version uses Gemini for predictions, which actually gives good results too.
+You can test everything locally - ML models work perfectly on your machine. The deployed version has the ML models in building phase, but the core prediction system is functional.
 
 ## Try It Locally
 
@@ -121,9 +119,8 @@ print(result)
 ## API Usage
 
 **Main endpoints:**
-- `/predict_all` - Full ML + LLM prediction
-- `/predict_product_llm` - LLM-only prediction  
-- `/chat` - Ask chemistry questions
+- `/predict_all` - ML model prediction (reaction type, product, hazard level)
+- `/chat` - Research chat with chemistry questions
 
 **Example:**
 ```python
