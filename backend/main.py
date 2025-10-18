@@ -9,6 +9,7 @@ import json
 import os
 from langchain_google_genai import ChatGoogleGenerativeAI
 
+# load env vars
 load_dotenv()
 RXN_API_KEY = os.getenv("RXN4CHEMISTRY_API_KEY")
 GEMINI_API_KEY = os.getenv("GOOGLE_API_KEY")
@@ -21,15 +22,16 @@ if GEMINI_API_KEY:
             google_api_key=GEMINI_API_KEY,
             temperature=0.7
         )
-        print("Gemini initialized")
+        print("gemini initialized")
     except Exception as e:
-        print(f"Gemini initialization failed: {e}")
+        print(f"gemini init failed: {e}")
 
 ML_MODEL_AVAILABLE = False
 rxn = None
 
 try:
-    print("⏳ Loading ML dependencies...")
+    print("loading ml deps...")
+    # TODO: uncomment these when deployment is fixed
     # from rdkit import Chem
     # import cirpy
     # import torch
@@ -38,7 +40,7 @@ try:
     # from ML_Model.utils.smiles_utils import name_to_smiles, smiles_to_name, is_valid_smiles
     # from ML_Model.predict.predict_reaction import predict_reaction as ml_predict_reaction
 
-    print("✓ ML dependencies loaded")
+    print("ml deps loaded")
     ML_MODEL_AVAILABLE = True
     # if RXN_API_KEY:
     #     print("⏳ Initializing RXN4Chemistry...")
@@ -54,11 +56,11 @@ try:
     #     ML_MODEL_AVAILABLE = False
 
 except Exception as e:
-    print(f"ML model unavailable: {e}")
+    print(f"ml model unavailable: {e}")
     ML_MODEL_AVAILABLE = False
     rxn = None
 
-app = FastAPI(title="ChemPredict AI")
+app = FastAPI(title="ChemPredict AI")  # main app
 
 app.add_middleware(
     CORSMiddleware,
@@ -77,6 +79,7 @@ class ChatInput(BaseModel):
     session_id: str = "default"
 
 def generate_reaction_description(reactant1: str, reactant2: str, reaction_type: str, hazard_level: str) -> str:
+    # use gemini to generate detailed reaction description
     if not gemini_llm:
         return f"A {reaction_type} reaction between {reactant1} and {reactant2}."
     
@@ -107,11 +110,7 @@ IMPORTANT: Write in plain text WITHOUT any markdown formatting (no **, *, #, etc
         return f"A {reaction_type} reaction between {reactant1} and {reactant2} with {hazard_level.lower()} safety hazard level."
 
 def predict_product_with_gemini(reactant1: str, reactant2: str) -> dict:
-    """ask gemini to predict primary product and related metadata in strict json.
-
-    returns a dict with keys: product, product_smiles, reaction_type, safety_hazard_level,
-    predicted_yield, reaction_description.
-    """
+    # ask gemini to predict reaction product and metadata
     if not gemini_llm:
         raise HTTPException(status_code=503, detail="Gemini model not initialized")
 
@@ -177,7 +176,7 @@ def home():
 @app.post("/predict_all")
 def predict_all(data: ReactionInput):
     if not ML_MODEL_AVAILABLE:
-        # Fallback to LLM prediction when ML model is not available
+        # fallback to llm when ml not available
         return predict_product_llm(data)
     
     try:
@@ -257,7 +256,7 @@ async def research_chat(data: ChatInput):
 
 @app.post("/predict_product_llm")
 def predict_product_llm(data: ReactionInput):
-    """predict product using gemini via langchain as a fallback/simple path."""
+    # predict product using gemini as fallback
     try:
         gemini_result = predict_product_with_gemini(data.reactant1, data.reactant2)
         # attempt smiles conversions when available

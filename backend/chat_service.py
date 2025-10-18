@@ -6,13 +6,13 @@ from typing import Dict
 import os
 from dotenv import load_dotenv
 
-load_dotenv()
+load_dotenv()  # load env vars
 
 class ChemicalResearchChatbot:
     def __init__(self):
         api_key = os.getenv("GOOGLE_API_KEY")
         if not api_key:
-            raise ValueError("GOOGLE_API_KEY not found in environment variables")
+            raise ValueError("GOOGLE_API_KEY not found")
         
         self.llm = ChatGoogleGenerativeAI(
             model="gemini-2.5-flash",
@@ -134,7 +134,7 @@ answer:"""
 
 try:
     chatbot = ChemicalResearchChatbot()
-    print("✅ chatbot initialized")
+    print("SUCCESS: chatbot initialized")
 except Exception as e:
-    print(f"❌ chatbot initialization failed: {e}")
+    print(f"ERROR: chatbot initialization failed: {e}")
     chatbot = None
