@@ -174,5 +174,4 @@ The chat feature lets you ask questions like "What happens if I mix X and Y?" an
 **Try it out:**
 The system works great locally with full ML functionality. The deployed version uses Gemini for predictions, which actually gives really good results too.
 
-**Contact:**
-Feel free to reach out if you want to collaborate or have questions about the implementation!
+
